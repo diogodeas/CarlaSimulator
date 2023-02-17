@@ -42,7 +42,7 @@ if __name__ == '__main__':
     
     #Connect to the client and retrieve the world object
     client = carla.Client('localhost', 2000)
-    world = client.get_world()
+    world = client.load_world('Town03', carla.MapLayer.Buildings | carla.MapLayer.ParkedVehicles)
     #Set up the simulation in synchronous mode
     settings = world.get_settings()
     settings.synchronous_mode = True # Enables synchronous mode
@@ -84,6 +84,8 @@ if __name__ == '__main__':
 
     for vehicle in vehicles:
         vehicle.set_autopilot(True)
+        traffic_manager.ignore_lights_percentage(vehicle, 100)
+        
         
         
         
