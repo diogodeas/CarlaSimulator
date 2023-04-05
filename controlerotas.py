@@ -1,10 +1,26 @@
-import carla
+import glob
+import os
+import sys
+import time
+from distutils.spawn import spawn
+from pynput import keyboard
 import random
+
+
+import pyautogui
+try:
+    sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
+        sys.version_info.major,
+        sys.version_info.minor,
+        'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
+except IndexError:
+    pass
+
+import carla
 
 # Connect to the client and retrieve the world object
 client = carla.Client('localhost', 2000)
-world = client.get_world()
-
+world = client.load_world('Town03', carla.MapLayer.Buildings | carla.MapLayer.ParkedVehicles)
 # Set up the simulator in synchronous mode
 settings = world.get_settings()
 settings.synchronous_mode = True # Enables synchronous mode
