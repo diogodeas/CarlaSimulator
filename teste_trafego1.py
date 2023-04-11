@@ -16,6 +16,7 @@ except IndexError:
 
 import carla
 import random
+import pickle
 
 
 
@@ -32,6 +33,8 @@ def on_press(key):
         #send signal
         global signal
         signal = 1
+
+
 
         
         
@@ -76,7 +79,6 @@ if __name__ == '__main__':
     max_vehicles = min([max_vehicles, len(spawn_points)])
     vehicles = []
     vehicle_positions = [[] for i in range(max_vehicles)]
-    vehicle_transforms = [[] for i in range(max_vehicles)]
 
     # Take a random sample of the spawn points and spawn some vehicles
     for i, spawn_point in enumerate(random.sample(spawn_points, max_vehicles)):
@@ -94,8 +96,7 @@ if __name__ == '__main__':
     
     
     #tick world, if c is pressed, destroy all vehicles
-    count = 0
-    time = 0;
+    count = -1
     #run listener in parallel
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
@@ -103,31 +104,25 @@ if __name__ == '__main__':
         while True:
             world.tick()
             count = (count+1)%20
-            time = time+1
             
             if count == 0: 
                 if signal == 1:
                     signal = 0
+                    with open('vehicle_position.pickle', 'wb') as f:
+                        pickle.dump(vehicle_positions, f)
+                        f.close()
                     for vehicle in vehicles:
                         vehicle.destroy()
                     settings.synchronous_mode = False
                     world.apply_settings(settings)
                     traffic_manager.set_synchronous_mode(False)
 
-            for i, vehicle in enumerate(vehicles):
-                location = vehicle.get_location()
-                vehicle_positions[i].append(location)
+                for i, vehicle in enumerate(vehicles):
+                    location = vehicle.get_location()
+                    vehicle_positions[i].append((location.x,location.y,location.z))
 
-            for i, vehicle in enumerate(vehicles):
-                transform = vehicle.get_transform()
-                vehicle_transforms[i] = transform
 
-            for vehicle, transform in zip(vehicles, vehicle_transforms):
-                # ...
-                vehicle.set_transform(transform)
-                vehicle_positions.append(transform.location)
-            # imprimir a lista de posições e a lista de velocidades dos veículos
-            print("Posições dos veículos:", vehicle_positions)
+            #print("Posições dos veículos:", vehicle_positions)
                         
             time.sleep(0.002)
     except KeyboardInterrupt:
