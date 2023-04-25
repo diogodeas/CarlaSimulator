@@ -2,6 +2,8 @@ import glob
 import os
 import sys
 import time
+import math
+import numpy as np
 from distutils.spawn import spawn
 from pynput import keyboard
 
@@ -79,7 +81,7 @@ if __name__ == '__main__':
     max_vehicles = min([max_vehicles, len(spawn_points)])
     vehicles = []
     vehicle_positions = [[] for i in range(max_vehicles)]
-
+    vehicle_velocities = [[] for i in range(max_vehicles)]
     # Take a random sample of the spawn points and spawn some vehicles
     for i, spawn_point in enumerate(random.sample(spawn_points, max_vehicles)):
         temp = world.try_spawn_actor(random.choice(blueprints), spawn_point)
@@ -90,11 +92,6 @@ if __name__ == '__main__':
         vehicle.set_autopilot(True)
         traffic_manager.ignore_lights_percentage(vehicle, 100)
         
-        
-        
-        
-    
-    
     #tick world, if c is pressed, destroy all vehicles
     count = -1
     #run listener in parallel
@@ -111,6 +108,9 @@ if __name__ == '__main__':
                     with open('vehicle_position.pickle', 'wb') as f:
                         pickle.dump(vehicle_positions, f)
                         f.close()
+                    with open('vehicle_velocity.pickle', 'wb') as f:
+                        pickle.dump(vehicle_velocities, f)
+                        f.close()
                     for vehicle in vehicles:
                         vehicle.destroy()
                     settings.synchronous_mode = False
@@ -119,7 +119,44 @@ if __name__ == '__main__':
 
                 for i, vehicle in enumerate(vehicles):
                     location = vehicle.get_location()
+                    velocity = vehicle.get_velocity()
                     vehicle_positions[i].append((location.x,location.y,location.z))
+                    vehicle_velocities[i].append((velocity.x,velocity.y,velocity.z))
+                
+                x_min = -50
+                x_max = 60
+                y_min = 200
+                y_max = 210
+
+                # Obtendo uma lista de todos os veículos dentro da área
+                vehicle_list = []
+                for vehicle in world.get_actors().filter('vehicle.*'):
+                    location = vehicle.get_location()
+                    if x_min <= location.x <= x_max and y_min <= location.y <= y_max:
+                        vehicle_list.append(vehicle)
+
+                num_vehicles = len(vehicle_list)
+                total_velocity = 0
+                for vehicle in vehicle_list:
+                    # Obtendo a velocidade do veículo
+                    velocity = vehicle.get_velocity()
+
+                    # Obtendo a velocidade escalar do veículo
+                    speed_scalar = np.sqrt(velocity.x**2 + velocity.y**2 + velocity.z**2)
+
+                    # Adicionando a velocidade escalar ao total
+                    total_velocity += speed_scalar
+
+                # Calculando o fluxo médio
+                if num_vehicles == 0:
+                    average_speed = 0;
+                else:
+                    average_speed = total_velocity / num_vehicles
+                flow = math.floor(average_speed * num_vehicles)
+
+                # Imprimindo o fluxo na tela
+                print(f"Fluxo de tráfego na área: {flow} veículos por segundo")
+
 
 
             #print("Posições dos veículos:", vehicle_positions)
