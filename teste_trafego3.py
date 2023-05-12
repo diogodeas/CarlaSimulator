@@ -35,6 +35,10 @@ def on_press(key):
         #send signal
         global signal
         signal = 1
+    if k == 'g':
+        print('Key pressed: ' + k)
+        camera = world.get_spectator().get_transform()
+        print(camera.location)
 
 
 
@@ -82,25 +86,95 @@ if __name__ == '__main__':
     vehicles = []
     vehicle_positions = [[] for i in range(max_vehicles)]
     vehicle_velocities = [[] for i in range(max_vehicles)]
-    # Take a random sample of the spawn points and spawn some vehicles
-    for i, spawn_point in enumerate(random.sample(spawn_points, max_vehicles)):
-        temp = world.try_spawn_actor(random.choice(blueprints), spawn_point)
-        if temp is not None:
-            vehicles.append(temp)
 
-    for vehicle in vehicles:
-        vehicle.set_autopilot(True)
-        traffic_manager.ignore_lights_percentage(vehicle, 100)
-        
-    #tick world, if c is pressed, destroy all vehicles
+    # Route 1
+    spawn_point_1 =  spawn_points[32]
+    # Create route 1 from the chosen spawn points
+    route_1_indices = [129, 28, 124, 33, 97, 119, 58, 154, 147]
+    route_1 = []
+    for ind in route_1_indices:
+        route_1.append(spawn_points[ind].location)
+
+    # Route 2
+    spawn_point_2 =  spawn_points[149]
+    # Create route 2 from the chosen spawn points
+    route_2_indices = [21, 76, 38, 34, 90, 3]
+    route_2 = []
+    for ind in route_2_indices:
+        route_2.append(spawn_points[ind].location)
+
+    # Now let's print them in the map so we can see our routes
+    world.debug.draw_string(spawn_point_1.location, 'Spawn point 1', life_time=30, color=carla.Color(255,0,0))
+    world.debug.draw_string(spawn_point_2.location, 'Spawn point 2', life_time=30, color=carla.Color(0,0,255))
+
+    for ind in route_1_indices:
+        spawn_points[ind].location
+        world.debug.draw_string(spawn_points[ind].location, str(ind), life_time=60, color=carla.Color(255,0,0))
+
+    for ind in route_2_indices:
+        spawn_points[ind].location
+        world.debug.draw_string(spawn_points[ind].location, str(ind), life_time=60, color=carla.Color(0,0,255))
+
+
+    # # Run the simulation so we can inspect the results with the spectator
+    # while True:
+    #     world.tick()
+
+    # Set delay to create gap between spawn times
+    spawn_delay = 20
+    counter = spawn_delay
+
+    # Alternate between spawn points
+    alt = False
     count = -1
-    #run listener in parallel
+
+    spawn_points = world.get_map().get_spawn_points()
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
     try:
         while True:
             world.tick()
             count = (count+1)%20
+            n_vehicles = len(world.get_actors().filter('*vehicle*'))
+            vehicle_bp = random.choice(blueprints)
+
+            # Spawn vehicle only after delay
+            if counter == spawn_delay and n_vehicles < max_vehicles:
+                # Alternate spawn points
+                if alt:
+                    vehicle = world.try_spawn_actor(vehicle_bp, spawn_point_1)
+                    if vehicle is not None:
+                        vehicles.append(vehicle)
+                
+                else:
+                    vehicle = world.try_spawn_actor(vehicle_bp, spawn_point_2)
+                    if vehicle is not None:
+                        vehicles.append(vehicle)
+
+                if vehicle: # IF vehicle is succesfully spawned
+                    vehicle.set_autopilot(True) # Give TM control over vehicle
+
+                    # Set parameters of TM vehicle control, we don't want lane changes
+                    traffic_manager.update_vehicle_lights(vehicle, True)
+                    traffic_manager.random_left_lanechange_percentage(vehicle, 0)
+                    traffic_manager.random_right_lanechange_percentage(vehicle, 0)
+                    traffic_manager.auto_lane_change(vehicle, False)
+
+                    # Alternate between routes
+                    if alt:
+                        traffic_manager.set_path(vehicle, route_1)
+                        alt = False
+                    else:
+                        traffic_manager.set_path(vehicle, route_2)
+                        alt = True
+
+                    vehicle = None
+
+                counter -= 1
+            elif counter > 0:
+                counter -= 1
+            elif counter == 0:
+                counter = spawn_delay
             
             if count == 0: 
                 if signal == 1:
@@ -155,7 +229,7 @@ if __name__ == '__main__':
                 flow = math.floor(average_speed * num_vehicles)
 
                 # Imprimindo o fluxo na tela
-                print(f"Fluxo de tráfego na área: {flow} veículos por segundo")
+                #print(f"Fluxo de tráfego na área: {flow} veículos por segundo")
 
 
 
