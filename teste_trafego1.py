@@ -24,6 +24,8 @@ import pickle
 
 global signal
 signal = 0
+global auto_pilot
+auto_pilot = 0
 #listener to key c
 def on_press(key):
     try:
@@ -35,6 +37,13 @@ def on_press(key):
         #send signal
         global signal
         signal = 1
+    if k == 'g':
+        print('Key pressed: ' + k)
+        camera = world.get_spectator().get_transform()
+        print(camera.location)
+    if k == 'l':
+        print('Key pressed: ' + k)
+        signal = 2
 
 
 
@@ -117,16 +126,33 @@ if __name__ == '__main__':
                     world.apply_settings(settings)
                     traffic_manager.set_synchronous_mode(False)
 
+                if signal == 2:
+                    signal = 0
+                    if auto_pilot == 0:
+                        for vehicle in vehicles:
+                            vehicle.set_autopilot(False)
+                            traffic_manager.ignore_lights_percentage(vehicle, 100)
+                        auto_pilot = 1
+
+                    else: 
+                        for vehicle in vehicles:
+                            vehicle.set_autopilot(True)
+                            traffic_manager.ignore_lights_percentage(vehicle, 100)
+                        auto_pilot = 0
+
+
+
+
                 for i, vehicle in enumerate(vehicles):
                     location = vehicle.get_location()
                     velocity = vehicle.get_velocity()
                     vehicle_positions[i].append((location.x,location.y,location.z))
                     vehicle_velocities[i].append((velocity.x,velocity.y,velocity.z))
                 
-                x_min = -50
-                x_max = 60
-                y_min = 200
-                y_max = 210
+                x_min = 80.27
+                x_max = 79.07
+                y_min = -85.54
+                y_max = -66
 
                 # Obtendo uma lista de todos os veículos dentro da área
                 vehicle_list = []
@@ -136,6 +162,7 @@ if __name__ == '__main__':
                         vehicle_list.append(vehicle)
 
                 num_vehicles = len(vehicle_list)
+                print(f"Numero veiculos: {num_vehicles}");
                 total_velocity = 0
                 for vehicle in vehicle_list:
                     # Obtendo a velocidade do veículo
@@ -155,7 +182,7 @@ if __name__ == '__main__':
                 flow = math.floor(average_speed * num_vehicles)
 
                 # Imprimindo o fluxo na tela
-                print(f"Fluxo de tráfego na área: {flow} veículos por segundo")
+                #print(f"Fluxo de tráfego na área: {flow} veículos por segundo")
 
 
 
