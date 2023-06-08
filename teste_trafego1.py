@@ -46,7 +46,17 @@ def on_press(key):
         signal = 2
 
 
+def verifica_quarteirao(veiculo, quarteirao_coords):
+    # Obtém a localização do veículo
+    localizacao = veiculo.get_location()
 
+    # Verifica se a localização do veículo está dentro das coordenadas do quarteirão
+    if (localizacao.x >= quarteirao_coords[0] and localizacao.x <= quarteirao_coords[1]) or \
+       (localizacao.y >= quarteirao_coords[2] and localizacao.y <= quarteirao_coords[3]) or \
+       (localizacao.z >= quarteirao_coords[4] and localizacao.z <= quarteirao_coords[5]):
+        return True
+    else:
+        return False
         
         
 
@@ -100,6 +110,17 @@ if __name__ == '__main__':
     for vehicle in vehicles:
         vehicle.set_autopilot(True)
         traffic_manager.ignore_lights_percentage(vehicle, 100)
+
+    xmin = 74.731438
+    xmax = 85.247070
+    ymin = -86.856857
+    ymax = -66.431007
+    zmin = 8.741795
+    zmax = 8.859064
+
+    # Define as coordenadas XYZ do quarteirão desejado
+    quarteirao_coords = [xmin, xmax, ymin, ymax, zmin, zmax]  # Substitua pelos valores corretos
+
         
     #tick world, if c is pressed, destroy all vehicles
     count = -1
@@ -149,20 +170,17 @@ if __name__ == '__main__':
                     vehicle_positions[i].append((location.x,location.y,location.z))
                     vehicle_velocities[i].append((velocity.x,velocity.y,velocity.z))
                 
-                x_min = 80.27
-                x_max = 79.07
-                y_min = -85.54
-                y_max = -66
 
                 # Obtendo uma lista de todos os veículos dentro da área
                 vehicle_list = []
                 for vehicle in world.get_actors().filter('vehicle.*'):
                     location = vehicle.get_location()
-                    if x_min <= location.x <= x_max and y_min <= location.y <= y_max:
+                    if verifica_quarteirao(vehicle, quarteirao_coords):
                         vehicle_list.append(vehicle)
 
                 num_vehicles = len(vehicle_list)
                 print(f"Numero veiculos: {num_vehicles}");
+                
                 total_velocity = 0
                 for vehicle in vehicle_list:
                     # Obtendo a velocidade do veículo
