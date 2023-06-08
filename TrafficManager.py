@@ -157,7 +157,7 @@ def main():
     walkers_list = []
     all_id = []
     client = carla.Client(args.host, args.port)
-    client.set_timeout(10.0)
+    client.set_timeout(1000.0)
     synchronous_master = False
     random.seed(args.seed if args.seed is not None else int(time.time()))
 
@@ -331,7 +331,7 @@ def main():
             all_actors[i].go_to_location(world.get_random_location_from_navigation())
             # max speed
             all_actors[i].set_max_speed(float(walker_speed[int(i/2)]))
-
+        carla.TrafficLight.get_pole_index(self)
         print('spawned %d vehicles and %d walkers, press Ctrl+C to exit.' % (len(vehicles_list), len(walkers_list)))
 
         # Example of how to use Traffic Manager parameters
