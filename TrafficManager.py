@@ -22,12 +22,20 @@ except IndexError:
     pass
 
 import carla
-
+from carla import Location
 from carla import VehicleLightState as vls
 
 import argparse
 import logging
 from numpy import random
+import math
+
+def calcular_distancia(loc1, loc2):
+    dx = loc2.x - loc1.x
+    dy = loc2.y - loc1.y
+    dz = loc2.z - loc1.z
+    distancia = math.sqrt(dx**2 + dy**2 + dz**2)
+    return distancia
 
 def get_actor_blueprints(world, filter, generation):
     bps = world.get_blueprint_library().filter(filter)
@@ -70,7 +78,7 @@ def main():
     argparser.add_argument(
         '-n', '--number-of-vehicles',
         metavar='N',
-        default=30,
+        default=100,
         type=int,
         help='Number of vehicles (default: 30)')
     argparser.add_argument(
@@ -148,10 +156,23 @@ def main():
         action='store_true',
         default=False,
         help='Activate no rendering mode')
-
+    argparser.add_argument(
+        '-f', '--recorder_filename',
+        metavar='F',
+        default="D:/COMPET/WindowsNoEditor/PythonAPI/CarlaSimulator/test1.rec",
+        help='recorder filename (test1.rec)')
+    argparser.add_argument(
+        '-a', '--show_all',
+        action='store_true',
+        help='show detailed info about all frames content')
+    argparser.add_argument(
+        '-sa', '--save_to_file',
+        metavar='S',
+        help='save result to file (specify name and extension)')
     args = argparser.parse_args()
 
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+    
 
     vehicles_list = []
     walkers_list = []
@@ -245,13 +266,67 @@ def main():
                 logging.error(response.error)
             else:
                 vehicles_list.append(response.actor_id)
-
+        all_vehicle_actors = world.get_actors(vehicles_list)
         # Set automatic vehicle lights update if specified
-        if args.car_lights_on:
-            all_vehicle_actors = world.get_actors(vehicles_list)
+        if args.car_lights_on:            
             for actor in all_vehicle_actors:
                 traffic_manager.update_vehicle_lights(actor, True)
+        traffic_lights = []
 
+        all_actors = world.get_actors()
+        for actor in all_actors:
+            if actor.type_id == 'traffic.traffic_light':
+                traffic_lights.append(actor)
+        area_central = world.get_spectator().get_transform()
+        print(area_central)
+        area_raio = 50.0  # Raio da área (distância máxima permitida)
+        semaforos_na_area = []
+        for traffic_light in traffic_lights:
+            traffic_light_position = traffic_light.get_location()
+            
+                
+            distancia = calcular_distancia(traffic_light_position, area_central.location)
+            # Verificar se a distância está dentro do raio da área
+            if distancia <= area_raio:
+                semaforos_na_area.append(traffic_light)
+
+            
+
+            #print("Traffic Light - Position:", traffic_light_position)
+            #print("Traffic Light - State:", traffic_light_state)
+        for semaforo in semaforos_na_area:
+            print("Semaforo na area:", semaforo)
+                        
+            # Obtém o estado atual do semáforo
+            state = semaforo.get_state()
+
+            # Obtém a duração do estado verde
+            green_duration =  carla.TrafficLight.get_green_time(semaforo)
+
+            # Obtém a duração do estado amarelo
+            yellow_duration = carla.TrafficLight.get_yellow_time(semaforo)
+
+            # Obtém a duração do estado vermelho
+            red_duration = carla.TrafficLight.get_red_time(semaforo)
+
+            light_number_on_group = carla.TrafficLight.get_pole_index(semaforo)
+            vehicle_stop_points = carla.TrafficLight.get_stop_waypoints(semaforo)
+            stop_points = []
+            for vehicle_stop_point in vehicle_stop_points:
+                waypoint = vehicle_stop_point.transform.location
+                stop_points.append(waypoint)
+            semaforo.set_state(carla.TrafficLightState.Green)
+            if(light_number_on_group == 0):
+                semaforo.set_state(carla.TrafficLightState.Red)
+            
+            #print("Duração do estado verde:", green_duration)
+            #print("Duração do estado amarelo:", yellow_duration)
+            #print("Duração do estado vermelho:", red_duration)
+            #print("Grupo pertencente:", group_of_ligths)
+            #print("Numero dentro do grupo:", light_number_on_group)
+            #for stop_point in stop_points:
+            #    print("ponto de parada do veiculo:", stop_point)
+        
         # -------------
         # Spawn Walkers
         # -------------
@@ -318,6 +393,7 @@ def main():
         # wait for a tick to ensure client receives the last transform of the walkers we have just created
         if args.asynch or not synchronous_master:
             world.wait_for_tick()
+            
         else:
             world.tick()
 
@@ -331,17 +407,27 @@ def main():
             all_actors[i].go_to_location(world.get_random_location_from_navigation())
             # max speed
             all_actors[i].set_max_speed(float(walker_speed[int(i/2)]))
-        carla.TrafficLight.get_pole_index(self)
         print('spawned %d vehicles and %d walkers, press Ctrl+C to exit.' % (len(vehicles_list), len(walkers_list)))
 
         # Example of how to use Traffic Manager parameters
         traffic_manager.global_percentage_speed_difference(30.0)
-
+        if args.save_to_file:
+            doc = open(args.save_to_file, "w+")
+            doc.write(client.show_recorder_file_info(args.recorder_filename, args.show_all))
+            doc.close()
+        else:
+            print(client.show_recorder_file_info(args.recorder_filename, args.show_all))
         while True:
             if not args.asynch and synchronous_master:
                 world.tick()
             else:
                 world.wait_for_tick()
+            for semaforo in semaforos_na_area:
+                light_number_on_group = carla.TrafficLight.get_pole_index(semaforo)
+                #print(fila_carros)
+                
+                
+
 
     finally:
 
