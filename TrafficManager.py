@@ -181,6 +181,7 @@ def main():
     client.set_timeout(1000.0)
     synchronous_master = False
     random.seed(args.seed if args.seed is not None else int(time.time()))
+    client.start_recorder('recording.log')
 
     try:
         world = client.get_world()
@@ -282,16 +283,11 @@ def main():
         area_raio = 50.0  # Raio da área (distância máxima permitida)
         semaforos_na_area = []
         for traffic_light in traffic_lights:
-            traffic_light_position = traffic_light.get_location()
-            
-                
+            traffic_light_position = traffic_light.get_location()  
             distancia = calcular_distancia(traffic_light_position, area_central.location)
             # Verificar se a distância está dentro do raio da área
             if distancia <= area_raio:
                 semaforos_na_area.append(traffic_light)
-
-            
-
             #print("Traffic Light - Position:", traffic_light_position)
             #print("Traffic Light - State:", traffic_light_state)
         for semaforo in semaforos_na_area:
@@ -417,14 +413,36 @@ def main():
             doc.close()
         else:
             print(client.show_recorder_file_info(args.recorder_filename, args.show_all))
+
         while True:
-            if not args.asynch and synchronous_master:
-                world.tick()
-            else:
-                world.wait_for_tick()
-            for semaforo in semaforos_na_area:
-                light_number_on_group = carla.TrafficLight.get_pole_index(semaforo)
-                #print(fila_carros)
+            # Obter a lista de veículos no mundo
+            vehicles = world.get_actors().filter('vehicle.*')
+    
+            # Verificar se há veículos próximos ao semáforo
+            vehicle_nearby = False
+            for vehicle in vehicles:
+                for semaforo in semaforos_na_area:
+                    distance = calcular_distancia(vehicle.get_location(),semaforo.get_location())
+                    if distance < 40:  # Definir uma distância de proximidade desejada
+                        vehicle_nearby = True
+                        break
+                    # Abrir o sinal se um veículo estiver próximo
+                    if vehicle_nearby:
+                        semaforo.set_state(carla.TrafficLightState.Green)
+                        green_time += 5.0  # Aumentar o tempo de sinal verde
+                        print("Sinal aberto")
+                    else:
+                        semaforo.set_state(carla.TrafficLightState.Red)
+                        print("Sinal fechado")
+                    # Esperar o tempo de sinal verde atual
+                    time.sleep(green_time)
+
+                    # Alternar para o tempo de sinal vermelho
+                    semaforo.set_state(carla.TrafficLightState.Red)
+                    print("Sinal fechado")
+
+                    # Esperar um tempo de sinal vermelho fixo
+                    time.sleep(5.0)
                 
                 
 
