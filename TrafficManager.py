@@ -78,7 +78,7 @@ def main():
     argparser.add_argument(
         '-n', '--number-of-vehicles',
         metavar='N',
-        default=100,
+        default=20,
         type=int,
         help='Number of vehicles (default: 30)')
     argparser.add_argument(
@@ -290,30 +290,30 @@ def main():
                 semaforos_na_area.append(traffic_light)
             #print("Traffic Light - Position:", traffic_light_position)
             #print("Traffic Light - State:", traffic_light_state)
-        for semaforo in semaforos_na_area:
-            print("Semaforo na area:", semaforo)
+        for semaforo_vehicle in semaforos_na_area:
+            print("Semaforo na area:", semaforo_vehicle)
                         
             # Obtém o estado atual do semáforo
-            state = semaforo.get_state()
+            state = semaforo_vehicle.get_state()
 
             # Obtém a duração do estado verde
-            green_duration =  carla.TrafficLight.get_green_time(semaforo)
+            green_duration =  carla.TrafficLight.get_green_time(semaforo_vehicle)
 
             # Obtém a duração do estado amarelo
-            yellow_duration = carla.TrafficLight.get_yellow_time(semaforo)
+            yellow_duration = carla.TrafficLight.get_yellow_time(semaforo_vehicle)
 
             # Obtém a duração do estado vermelho
-            red_duration = carla.TrafficLight.get_red_time(semaforo)
+            red_duration = carla.TrafficLight.get_red_time(semaforo_vehicle)
 
-            light_number_on_group = carla.TrafficLight.get_pole_index(semaforo)
-            vehicle_stop_points = carla.TrafficLight.get_stop_waypoints(semaforo)
+            light_number_on_group = carla.TrafficLight.get_pole_index(semaforo_vehicle)
+            vehicle_stop_points = carla.TrafficLight.get_stop_waypoints(semaforo_vehicle)
             stop_points = []
             for vehicle_stop_point in vehicle_stop_points:
                 waypoint = vehicle_stop_point.transform.location
                 stop_points.append(waypoint)
-            semaforo.set_state(carla.TrafficLightState.Green)
+            semaforo_vehicle.set_state(carla.TrafficLightState.Green)
             if(light_number_on_group == 0):
-                semaforo.set_state(carla.TrafficLightState.Red)
+                semaforo_vehicle.set_state(carla.TrafficLightState.Red)
             
             #print("Duração do estado verde:", green_duration)
             #print("Duração do estado amarelo:", yellow_duration)
@@ -413,36 +413,46 @@ def main():
             doc.close()
         else:
             print(client.show_recorder_file_info(args.recorder_filename, args.show_all))
-
+        green_time = 10.0
+        for semaforo in semaforos_na_area:
+            semaforo.set_state(carla.TrafficLightState.Red)
+        
         while True:
+            world.tick()
             # Obter a lista de veículos no mundo
-            vehicles = world.get_actors().filter('vehicle.*')
-    
+            vehicles = world.get_actors().filter('vehicle.*')    
             # Verificar se há veículos próximos ao semáforo
             vehicle_nearby = False
+
+            
             for vehicle in vehicles:
-                for semaforo in semaforos_na_area:
-                    distance = calcular_distancia(vehicle.get_location(),semaforo.get_location())
-                    if distance < 40:  # Definir uma distância de proximidade desejada
-                        vehicle_nearby = True
-                        break
-                    # Abrir o sinal se um veículo estiver próximo
-                    if vehicle_nearby:
-                        semaforo.set_state(carla.TrafficLightState.Green)
-                        green_time += 5.0  # Aumentar o tempo de sinal verde
-                        print("Sinal aberto")
-                    else:
-                        semaforo.set_state(carla.TrafficLightState.Red)
-                        print("Sinal fechado")
-                    # Esperar o tempo de sinal verde atual
-                    time.sleep(green_time)
+                if vehicle.is_at_traffic_light():
+                    semaforo_vehicle = carla.Vehicle.get_traffic_light(vehicle)  
+                    semaforo_valido = False          
+                    #print(semaforo_vehicle)
+                    for semaforo in semaforos_na_area:
+                        if semaforo_vehicle.id == semaforo.id:
+                            print(semaforo_vehicle)
+                            semaforo_valido = True
+                    if semaforo_valido:
+                        ha_semaforo_verde = False
+                        for semaforo in semaforos_na_area:
+                            if semaforo.id != semaforo_vehicle.id:
+                                # Alternar todos os outros sinal vermelho
+                                if semaforo.get_state() == carla.TrafficLightState.Green:
+                                    ha_semaforo_verde = True  
+                        #print(ha_semaforo_verde)
+                        if not ha_semaforo_verde:                  
+                            green_time += 5.0  # Aumentar o tempo de sinal verde                    
+                            semaforo_vehicle.set_green_time(green_time)
+                            semaforo_vehicle.set_state(carla.TrafficLightState.Green)
+                            for semaforo in semaforos_na_area:
+                            # Alternar todos os outros sinal vermelho
+                                semaforo.set_state(carla.TrafficLightState.Red)
+                               
+                
+                    
 
-                    # Alternar para o tempo de sinal vermelho
-                    semaforo.set_state(carla.TrafficLightState.Red)
-                    print("Sinal fechado")
-
-                    # Esperar um tempo de sinal vermelho fixo
-                    time.sleep(5.0)
                 
                 
 
