@@ -416,13 +416,16 @@ def main():
         green_time = 10.0
         for semaforo in semaforos_na_area:
             semaforo.set_state(carla.TrafficLightState.Red)
-        
+        # Defina o intervalo de tempo entre as iterações
+        delta_t = 0.1  # 0,1 segundo
+        metricas_veiculos = {}                
+        # Inicie o cronômetro
+        start_time = time.time()
         while True:
             world.tick()
             # Obter a lista de veículos no mundo
-            vehicles = world.get_actors().filter('vehicle.*')    
-            # Verificar se há veículos próximos ao semáforo
-            vehicle_nearby = False
+            vehicles = world.get_actors().filter('vehicle.*')   
+
 
             
             for vehicle in vehicles:
@@ -432,7 +435,6 @@ def main():
                     #print(semaforo_vehicle)
                     for semaforo in semaforos_na_area:
                         if semaforo_vehicle.id == semaforo.id:
-                            print(semaforo_vehicle)
                             semaforo_valido = True
                     if semaforo_valido:
                         ha_semaforo_verde = False
@@ -449,6 +451,20 @@ def main():
                             for semaforo in semaforos_na_area:
                             # Alternar todos os outros sinal vermelho
                                 semaforo.set_state(carla.TrafficLightState.Red)
+                if vehicle.id not in metricas_veiculos:
+                    metricas_veiculos[vehicle.id] = {
+                        "tempo_total_viagem": 0,
+                        "distancia_total_viagem": 0,
+                        "tempo_total_espera": 0
+                    }
+                magnitude_velocidade = math.sqrt(vehicle.get_velocity().x**2 + vehicle.get_velocity().y**2 + vehicle.get_velocity().z**2)
+                # Atualize a distância percorrida pelo veículo
+                metricas_veiculos[vehicle.id]["distancia_total_viagem"] += magnitude_velocidade * delta_t
+
+                # Verifique se o veículo está esperando em um semáforo
+                if vehicle.is_at_traffic_light() and vehicle.get_traffic_light_state() == carla.TrafficLightState.Red:
+                    metricas_veiculos[vehicle.id]["tempo_total_espera"] += delta_t
+
                                
                 
                     
@@ -458,7 +474,16 @@ def main():
 
 
     finally:
+        for vehicle_id, metricas in metricas_veiculos.items():
+            metricas["tempo_total_viagem"] = time.time() - start_time
 
+        # Imprima as métricas para cada veículo
+        for vehicle_id, metricas in metricas_veiculos.items():
+            print("Veículo ID: {}".format(vehicle_id))
+            print("Tempo total de viagem: {} segundos".format(metricas["tempo_total_viagem"]))
+            print("Distância total de viagem: {} metros".format(metricas["distancia_total_viagem"]))
+            print("Tempo total de espera: {} segundos".format(metricas["tempo_total_espera"]))
+            print("\n")
         if not args.asynch and synchronous_master:
             settings = world.get_settings()
             settings.synchronous_mode = False
