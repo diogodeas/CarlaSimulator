@@ -51,9 +51,8 @@ def verifica_quarteirao(veiculo, quarteirao_coords):
     localizacao = veiculo.get_location()
 
     # Verifica se a localização do veículo está dentro das coordenadas do quarteirão
-    if (localizacao.x >= quarteirao_coords[0] and localizacao.x <= quarteirao_coords[1]) or \
-       (localizacao.y >= quarteirao_coords[2] and localizacao.y <= quarteirao_coords[3]) or \
-       (localizacao.z >= quarteirao_coords[4] and localizacao.z <= quarteirao_coords[5]):
+    if (localizacao.x >= quarteirao_coords[0] and localizacao.x <= quarteirao_coords[1]) and \
+       (localizacao.y >= quarteirao_coords[2] and localizacao.y <= quarteirao_coords[3]):
         return True
     else:
         return False
@@ -96,30 +95,27 @@ if __name__ == '__main__':
             blueprints.append(vehicle)
 
     # Set a max number of vehicles and prepare a list for those we spawn
-    max_vehicles = 150
+    max_vehicles = 1
     max_vehicles = min([max_vehicles, len(spawn_points)])
     vehicles = []
     vehicle_positions = [[] for i in range(max_vehicles)]
     vehicle_velocities = [[] for i in range(max_vehicles)]
     # Take a random sample of the spawn points and spawn some vehicles
     for i, spawn_point in enumerate(random.sample(spawn_points, max_vehicles)):
-        temp = world.try_spawn_actor(random.choice(blueprints), spawn_point)
+        temp = world.try_spawn_actor(random.choice(blueprints), spawn_points[46])
         if temp is not None:
             vehicles.append(temp)
 
     for vehicle in vehicles:
         vehicle.set_autopilot(True)
         traffic_manager.ignore_lights_percentage(vehicle, 100)
-
-    xmin = 74.731438
-    xmax = 85.247070
-    ymin = -86.856857
-    ymax = -66.431007
-    zmin = 8.741795
-    zmax = 8.859064
-
+    #I'll give 2 values as input and assign them as min and max values for the spawn points
+    
+    xmin, xmax = sorted([-21.393253, 22.072824])
+    ymin, ymax = sorted([-154.187500, -118.530777])
+    global filaQuarteirao
     # Define as coordenadas XYZ do quarteirão desejado
-    quarteirao_coords = [xmin, xmax, ymin, ymax, zmin, zmax]  # Substitua pelos valores corretos
+    quarteirao_coords = [xmin, xmax, ymin, ymax]  # Substitua pelos valores corretos
 
         
     #tick world, if c is pressed, destroy all vehicles
@@ -127,6 +123,7 @@ if __name__ == '__main__':
     #run listener in parallel
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
+    vehicle_list = []
     try:
         while True:
             world.tick()
@@ -172,14 +169,19 @@ if __name__ == '__main__':
                 
 
                 # Obtendo uma lista de todos os veículos dentro da área
-                vehicle_list = []
                 for vehicle in world.get_actors().filter('vehicle.*'):
                     location = vehicle.get_location()
                     if verifica_quarteirao(vehicle, quarteirao_coords):
-                        vehicle_list.append(vehicle)
+                        if vehicle not in vehicle_list:
+                            vehicle_list.append(vehicle)
+                            
+                
+                        
 
                 num_vehicles = len(vehicle_list)
-                print(f"Numero veiculos: {num_vehicles}");
+                if num_vehicles > 0:
+                    print(f"Numero veiculos: {num_vehicles}")
+                    print(vehicle_list)
                 
                 total_velocity = 0
                 for vehicle in vehicle_list:
@@ -194,7 +196,7 @@ if __name__ == '__main__':
 
                 # Calculando o fluxo médio
                 if num_vehicles == 0:
-                    average_speed = 0;
+                    average_speed = 0
                 else:
                     average_speed = total_velocity / num_vehicles
                 flow = math.floor(average_speed * num_vehicles)
