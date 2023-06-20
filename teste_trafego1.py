@@ -57,7 +57,20 @@ def verifica_quarteirao(veiculo, quarteirao_coords):
     else:
         return False
         
+def gerenciarFila(idQuart):
+    global filaQuarteirao
+    global BoolQuarteirao
+    if len(filaQuarteirao[idQuart]) == 0:
+        return
+    for ivehicle in range(len(filaQuarteirao[idQuart])):
+        if ivehicle != 0:
+            filaQuarteirao[idQuart][ivehicle].set_autopilot(False)
+            filaQuarteirao[idQuart][ivehicle].apply_control(carla.VehicleControl(throttle=0.0, steer=0.0, brake=1.0))
+    if not BoolQuarteirao[idQuart]:
+        filaQuarteirao[idQuart][0].set_autopilot(True)
+        BoolQuarteirao[idQuart] = True
         
+    
 
 
 
@@ -95,16 +108,18 @@ if __name__ == '__main__':
             blueprints.append(vehicle)
 
     # Set a max number of vehicles and prepare a list for those we spawn
-    max_vehicles = 1
+    max_vehicles = 30
     max_vehicles = min([max_vehicles, len(spawn_points)])
     vehicles = []
     vehicle_positions = [[] for i in range(max_vehicles)]
     vehicle_velocities = [[] for i in range(max_vehicles)]
     # Take a random sample of the spawn points and spawn some vehicles
     for i, spawn_point in enumerate(random.sample(spawn_points, max_vehicles)):
-        temp = world.try_spawn_actor(random.choice(blueprints), spawn_points[46])
+        temp = world.try_spawn_actor(random.choice(blueprints), spawn_point)
         if temp is not None:
             vehicles.append(temp)
+        
+             
 
     for vehicle in vehicles:
         vehicle.set_autopilot(True)
@@ -114,6 +129,9 @@ if __name__ == '__main__':
     xmin, xmax = sorted([-21.393253, 22.072824])
     ymin, ymax = sorted([-154.187500, -118.530777])
     global filaQuarteirao
+    global BoolQuarteirao
+    BoolQuarteirao = [False for _ in range(100)]
+    filaQuarteirao = [[] for _ in range(100)]
     # Define as coordenadas XYZ do quarteirão desejado
     quarteirao_coords = [xmin, xmax, ymin, ymax]  # Substitua pelos valores corretos
 
@@ -123,11 +141,10 @@ if __name__ == '__main__':
     #run listener in parallel
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
-    vehicle_list = []
     try:
         while True:
             world.tick()
-            count = (count+1)%20
+            count = (count+1)%1
             
             if count == 0: 
                 if signal == 1:
@@ -169,22 +186,25 @@ if __name__ == '__main__':
                 
 
                 # Obtendo uma lista de todos os veículos dentro da área
-                for vehicle in world.get_actors().filter('vehicle.*'):
+                for vehicle in vehicles:
                     location = vehicle.get_location()
                     if verifica_quarteirao(vehicle, quarteirao_coords):
-                        if vehicle not in vehicle_list:
-                            vehicle_list.append(vehicle)
+                        if vehicle not in filaQuarteirao[1]:
+                            filaQuarteirao[1].append(vehicle)
+                    else:
+                        if vehicle in filaQuarteirao[1]:
+                            filaQuarteirao[1].remove(vehicle)
+                            BoolQuarteirao[1] = False
                             
                 
                         
 
-                num_vehicles = len(vehicle_list)
-                if num_vehicles > 0:
-                    print(f"Numero veiculos: {num_vehicles}")
-                    print(vehicle_list)
+                num_vehicles = len(filaQuarteirao[1])
+                gerenciarFila(1)
+                
                 
                 total_velocity = 0
-                for vehicle in vehicle_list:
+                for vehicle in filaQuarteirao[1]:
                     # Obtendo a velocidade do veículo
                     velocity = vehicle.get_velocity()
 
