@@ -26,8 +26,12 @@ global signal
 signal = 0
 global auto_pilot
 auto_pilot = 0
+global kpress
+kpress = 0
 #listener to key c
 def on_press(key):
+    global kpress
+    global kpressanterior
     try:
         k = key.char # single-char keys
     except:
@@ -38,6 +42,17 @@ def on_press(key):
         global signal
         signal = 1
     if k == 'g':
+        kpress+=1
+        kpress%=2
+        if(kpress==1):
+            kpressanterior=world.get_spectator().get_transform()
+        if kpress == 0:
+            print('Quarteirao: [',end='')
+            xmin = min(kpressanterior.location.x,world.get_spectator().get_transform().location.x)
+            xmax = max(kpressanterior.location.x,world.get_spectator().get_transform().location.x)
+            ymin = min(kpressanterior.location.y,world.get_spectator().get_transform().location.y)
+            ymax = max(kpressanterior.location.y,world.get_spectator().get_transform().location.y)
+            print(xmin,',',xmax,',',ymin,',',ymax,']')
         print('Key pressed: ' + k)
         camera = world.get_spectator().get_transform()
         print(camera.location)
@@ -66,9 +81,9 @@ def gerenciarFila(idQuart):
         if ivehicle != 0:
             filaQuarteirao[idQuart][ivehicle].set_autopilot(False)
             filaQuarteirao[idQuart][ivehicle].apply_control(carla.VehicleControl(throttle=0.0, steer=0.0, brake=1.0))
-    if not BoolQuarteirao[idQuart]:
+    if BoolQuarteirao[idQuart]==0:
         filaQuarteirao[idQuart][0].set_autopilot(True)
-        BoolQuarteirao[idQuart] = True
+        BoolQuarteirao[idQuart] = 1
         
     
 
@@ -78,7 +93,8 @@ if __name__ == '__main__':
     
     #Connect to the client and retrieve the world object
     client = carla.Client('localhost', 2000)
-    world = client.load_world('Town03', carla.MapLayer.Buildings | carla.MapLayer.ParkedVehicles)
+    world = client.get_world()
+    # world = client.load_world('Town03', carla.MapLayer.Buildings | carla.MapLayer.ParkedVehicles)
     #Set up the simulation in synchronous mode
     settings = world.get_settings()
     settings.synchronous_mode = True # Enables synchronous mode
@@ -108,7 +124,7 @@ if __name__ == '__main__':
             blueprints.append(vehicle)
 
     # Set a max number of vehicles and prepare a list for those we spawn
-    max_vehicles = 30
+    max_vehicles = 80
     max_vehicles = min([max_vehicles, len(spawn_points)])
     vehicles = []
     vehicle_positions = [[] for i in range(max_vehicles)]
@@ -130,10 +146,10 @@ if __name__ == '__main__':
     ymin, ymax = sorted([-154.187500, -118.530777])
     global filaQuarteirao
     global BoolQuarteirao
-    BoolQuarteirao = [False for _ in range(100)]
+    BoolQuarteirao = [0 for _ in range(100)]
     filaQuarteirao = [[] for _ in range(100)]
     # Define as coordenadas XYZ do quarteirão desejado
-    quarteirao_coords = [xmin, xmax, ymin, ymax]  # Substitua pelos valores corretos
+    quarteirao_coords = [[-63.775169372558594 , -25.274696350097656 , 0.8999748826026917 , 41.85736846923828 ]]  # Substitua pelos valores corretos
 
         
     #tick world, if c is pressed, destroy all vehicles
@@ -141,10 +157,12 @@ if __name__ == '__main__':
     #run listener in parallel
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
+    total_avg = 0
+    count_avg = 0
     try:
         while True:
             world.tick()
-            count = (count+1)%1
+            count = (count+1)%3
             
             if count == 0: 
                 if signal == 1:
@@ -173,53 +191,72 @@ if __name__ == '__main__':
                         for vehicle in vehicles:
                             vehicle.set_autopilot(True)
                             traffic_manager.ignore_lights_percentage(vehicle, 100)
-                        auto_pilot = 0
+                        auto_pilot = 0 
 
 
 
 
                 for i, vehicle in enumerate(vehicles):
-                    location = vehicle.get_location()
-                    velocity = vehicle.get_velocity()
-                    vehicle_positions[i].append((location.x,location.y,location.z))
-                    vehicle_velocities[i].append((velocity.x,velocity.y,velocity.z))
+                    try:
+                        location = vehicle.get_location()
+                        velocity = vehicle.get_velocity()
+                        vehicle_positions[i].append((location.x,location.y,location.z))
+                        vehicle_velocities[i].append((velocity.x,velocity.y,velocity.z))
+                    except Exception as e:
+                        print(e)
+                        continue
+                        
                 
-
+                
                 # Obtendo uma lista de todos os veículos dentro da área
                 for vehicle in vehicles:
-                    location = vehicle.get_location()
-                    if verifica_quarteirao(vehicle, quarteirao_coords):
-                        if vehicle not in filaQuarteirao[1]:
-                            filaQuarteirao[1].append(vehicle)
-                    else:
-                        if vehicle in filaQuarteirao[1]:
-                            filaQuarteirao[1].remove(vehicle)
-                            BoolQuarteirao[1] = False
-                            
-                
+                    try:
+                        location = vehicle.get_location()
+                        for i in range(len(quarteirao_coords)):
+                            if verifica_quarteirao(vehicle, quarteirao_coords[i]):
+                                if vehicle not in filaQuarteirao[i]:
+                                    filaQuarteirao[i].append(vehicle)
+                            else:
+                                if vehicle in filaQuarteirao[i]:
+                                    filaQuarteirao[i].remove(vehicle)
+                                    BoolQuarteirao[i] = 0
+                    except Exception as e:
+                        print(e)
+                        for i in range(len(quarteirao_coords)):
+                            if vehicle in filaQuarteirao[i]:
+                                filaQuarteirao[i].remove(vehicle)
                         
 
-                num_vehicles = len(filaQuarteirao[1])
-                gerenciarFila(1)
-                
-                
+                for i in range(len(quarteirao_coords)):
+                    num_vehicles = len(filaQuarteirao[i])
+                    gerenciarFila(i)
+
                 total_velocity = 0
-                for vehicle in filaQuarteirao[1]:
-                    # Obtendo a velocidade do veículo
-                    velocity = vehicle.get_velocity()
+                for vehicle in vehicles:
+                    try:
+                        # Obtendo a velocidade do veículo
+                        velocity = vehicle.get_velocity()
 
-                    # Obtendo a velocidade escalar do veículo
-                    speed_scalar = np.sqrt(velocity.x**2 + velocity.y**2 + velocity.z**2)
+                        # Obtendo a velocidade escalar do veículo
+                        speed_scalar = np.sqrt(velocity.x**2 + velocity.y**2 + velocity.z**2)
 
-                    # Adicionando a velocidade escalar ao total
-                    total_velocity += speed_scalar
+                        # Adicionando a velocidade escalar ao total
+                        total_velocity += speed_scalar
+                    except Exception as e:
+                        print(e)
+                        continue
 
                 # Calculando o fluxo médio
+                num_vehicles =len(vehicles)
                 if num_vehicles == 0:
                     average_speed = 0
                 else:
                     average_speed = total_velocity / num_vehicles
-                flow = math.floor(average_speed * num_vehicles)
+                total_avg += average_speed
+                count_avg += 1
+
+                print("Velociade média até então é: ", total_avg/count_avg)
+                
 
                 # Imprimindo o fluxo na tela
                 #print(f"Fluxo de tráfego na área: {flow} veículos por segundo")
