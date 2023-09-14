@@ -59,7 +59,7 @@ def on_press(key):
     if k == 'l':
         print('Key pressed: ' + k)
         signal = 2
-
+    
 
 def verifica_quarteirao(veiculo, quarteirao_coords):
     # Obtém a localização do veículo
@@ -94,7 +94,7 @@ if __name__ == '__main__':
     #Connect to the client and retrieve the world object
     client = carla.Client('localhost', 2000)
     world = client.get_world()
-    # world = client.load_world('Town03', carla.MapLayer.Buildings | carla.MapLayer.ParkedVehicles)
+    world = client.load_world('Town03', carla.MapLayer.Buildings | carla.MapLayer.ParkedVehicles)
     #Set up the simulation in synchronous mode
     settings = world.get_settings()
     settings.synchronous_mode = True # Enables synchronous mode
@@ -149,7 +149,7 @@ if __name__ == '__main__':
     BoolQuarteirao = [0 for _ in range(100)]
     filaQuarteirao = [[] for _ in range(100)]
     # Define as coordenadas XYZ do quarteirão desejado
-    quarteirao_coords = [[-63.775169372558594 , -25.274696350097656 , 0.8999748826026917 , 41.85736846923828 ]]  # Substitua pelos valores corretos
+    quarteirao_coords = [[-63.775169372558594 , -25.274696350097656 , 0.8999748826026917 , 41.85736846923828 ],[74.3394546508789 , 92.2491683959961 , -143.74993896484375 , -125.37710571289062 ]]  # Substitua pelos valores corretos
 
         
     #tick world, if c is pressed, destroy all vehicles
@@ -216,6 +216,8 @@ if __name__ == '__main__':
                             if verifica_quarteirao(vehicle, quarteirao_coords[i]):
                                 if vehicle not in filaQuarteirao[i]:
                                     filaQuarteirao[i].append(vehicle)
+                                if i==1:
+                                    print("Veículo ", vehicle.id, " está no quarteirão ", i)
                             else:
                                 if vehicle in filaQuarteirao[i]:
                                     filaQuarteirao[i].remove(vehicle)
@@ -225,6 +227,8 @@ if __name__ == '__main__':
                         for i in range(len(quarteirao_coords)):
                             if vehicle in filaQuarteirao[i]:
                                 filaQuarteirao[i].remove(vehicle)
+                
+        
                         
 
                 for i in range(len(quarteirao_coords)):
@@ -255,7 +259,7 @@ if __name__ == '__main__':
                 total_avg += average_speed
                 count_avg += 1
 
-                print("Velociade média até então é: ", total_avg/count_avg)
+                #print("Velociade média até então é: ", total_avg/count_avg)
                 
 
                 # Imprimindo o fluxo na tela
