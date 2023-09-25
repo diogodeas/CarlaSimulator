@@ -149,7 +149,8 @@ if __name__ == '__main__':
     BoolQuarteirao = [0 for _ in range(100)]
     filaQuarteirao = [[] for _ in range(100)]
     # Define as coordenadas XYZ do quarteirão desejado
-    quarteirao_coords = [[-63.775169372558594 , -25.274696350097656 , 0.8999748826026917 , 41.85736846923828 ],[74.3394546508789 , 92.2491683959961 , -143.74993896484375 , -125.37710571289062 ]]  # Substitua pelos valores corretos
+    quarteirao_coords = [[-63.775169372558594 , -25.274696350097656 , 0.8999748826026917 , 41.85736846923828 ],
+                         [74.3394546508789 , 92.2491683959961 , -143.74993896484375 , -125.37710571289062 ]]  # Substitua pelos valores corretos
 
         
     #tick world, if c is pressed, destroy all vehicles
@@ -216,8 +217,8 @@ if __name__ == '__main__':
                             if verifica_quarteirao(vehicle, quarteirao_coords[i]):
                                 if vehicle not in filaQuarteirao[i]:
                                     filaQuarteirao[i].append(vehicle)
-                                if i==1:
-                                    print("Veículo ", vehicle.id, " está no quarteirão ", i)
+                                #if i==1:
+                                    #print("Veículo ", vehicle.id, " está no quarteirão ", i)
                             else:
                                 if vehicle in filaQuarteirao[i]:
                                     filaQuarteirao[i].remove(vehicle)
