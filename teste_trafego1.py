@@ -46,6 +46,9 @@ def on_press(key):
         kpress%=2
         if(kpress==1):
             kpressanterior=world.get_spectator().get_transform()
+        print('Key pressed: ' + k)
+        camera = world.get_spectator().get_transform()
+        print(camera.location)
         if kpress == 0:
             print('Quarteirao: [',end='')
             xmin = min(kpressanterior.location.x,world.get_spectator().get_transform().location.x)
@@ -53,9 +56,7 @@ def on_press(key):
             ymin = min(kpressanterior.location.y,world.get_spectator().get_transform().location.y)
             ymax = max(kpressanterior.location.y,world.get_spectator().get_transform().location.y)
             print(xmin,',',xmax,',',ymin,',',ymax,']')
-        print('Key pressed: ' + k)
-        camera = world.get_spectator().get_transform()
-        print(camera.location)
+        
     if k == 'l':
         print('Key pressed: ' + k)
         signal = 2
@@ -79,9 +80,11 @@ def gerenciarFila(idQuart):
         return
     for ivehicle in range(len(filaQuarteirao[idQuart])):
         if ivehicle != 0:
+            print("Veículo ", filaQuarteirao[idQuart][ivehicle].id, " está no quarteirão ", idQuart, " e está parado")
             filaQuarteirao[idQuart][ivehicle].set_autopilot(False)
             filaQuarteirao[idQuart][ivehicle].apply_control(carla.VehicleControl(throttle=0.0, steer=0.0, brake=1.0))
     if BoolQuarteirao[idQuart]==0:
+        print("Veículo ", filaQuarteirao[idQuart][0].id, " está no quarteirão ", idQuart, " e está andando")
         filaQuarteirao[idQuart][0].set_autopilot(True)
         BoolQuarteirao[idQuart] = 1
         
@@ -126,7 +129,8 @@ if __name__ == '__main__':
     # Set a max number of vehicles and prepare a list for those we spawn
     max_vehicles = 80
     max_vehicles = min([max_vehicles, len(spawn_points)])
-    vehicles = []
+    vehicles = []   
+
     vehicle_positions = [[] for i in range(max_vehicles)]
     vehicle_velocities = [[] for i in range(max_vehicles)]
     # Take a random sample of the spawn points and spawn some vehicles
@@ -140,8 +144,9 @@ if __name__ == '__main__':
     for vehicle in vehicles:
         vehicle.set_autopilot(True)
         traffic_manager.ignore_lights_percentage(vehicle, 100)
+        traffic_manager.ignore_signs_percentage(vehicle, 100)
     #I'll give 2 values as input and assign them as min and max values for the spawn points
-    
+    print("Quarteirão 1: [",end='')
     xmin, xmax = sorted([-21.393253, 22.072824])
     ymin, ymax = sorted([-154.187500, -118.530777])
     global filaQuarteirao
@@ -150,19 +155,8 @@ if __name__ == '__main__':
     filaQuarteirao = [[] for _ in range(100)]
     # Define as coordenadas XYZ do quarteirão desejado
     quarteirao_coords = [
-        [-88.54043579101562 , -74.24840545654297 , 121.38804626464844 , 145.87229919433594 ],
-        [-88.94581604003906 , -74.7457275390625 , -149.93934631347656 , -124.36908721923828 ],
-        [-13.912168502807617 , 20.45328140258789 , -208.75135803222656 , -182.65130615234375 ],
-        [71.89728546142578 , 96.59807586669922 , -214.62799072265625 , -180.95278930664062 ],
-        [142.1263885498047 , 162.94361877441406 , -212.63088989257812 , -187.29222106933594 ],
-        [141.02328491210938 , 164.19595336914062 , -149.09475708007812 , -121.77181243896484 ],
-        [140.5489959716797 , 161.15072631835938 , -83.69619750976562 , -64.12606048583984 ],
-        [70.48491668701172 , 93.51374816894531 , -85.63016510009766 , -65.14849853515625 ],
-        [219.2088165283203 , 235.65301513671875 , -10.592755317687988 , 17.583099365234375 ],
-        [219.7361602783203 , 251.67034912109375 , 44.633636474609375 , 77.64836120605469 ],
-        [150.3654022216797 , 179.63235473632812 , 50.34278869628906 , 73.3852310180664 ],
-        [-18.821025848388672 , 15.996143341064453 , 120.71711730957031 , 143.78131103515625 ]
-    ]  
+        [-96.86652374267578 , -67.63455963134766 , -147.0996856689453 , -128.4384765625 ],
+    ]
 
         
     #tick world, if c is pressed, destroy all vehicles
@@ -175,7 +169,7 @@ if __name__ == '__main__':
     try:
         while True:
             world.tick()
-            count = (count+1)%3
+            count = (count+1)%1
             
             if count == 0: 
                 if signal == 1:
